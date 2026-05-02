@@ -7,6 +7,86 @@
 - For `macvlan` networks: host network interface(s) configured and available (e.g., `eth0`, `eth0.10`).
 - On Linux hosts you may need to create VLAN sub-interfaces (example uses `eth0.10`).
 
+## 1. Setting up VLAN on Raspberry Pi
+
+This section follows the steps from the Engineer's Workshop guide to create VLAN virtual NICs and configure IP addressing.
+
+Prerequisites:
+
+- A managed switch port configured as a trunk/hybrid with the VLANs you need
+- Physical NIC name on the Pi (e.g., `eth0`)
+
+1) Install the VLAN package
+
+```bash
+sudo apt update
+sudo apt install -y vlan
+```
+
+2) Create virtual NICs
+
+Create the file `/etc/network/interfaces.d/vlans` and add a stanza for each VLAN. Example for VLAN 10:
+
+```
+auto eth0.10
+iface eth0.10 inet manual
+	vlan-raw-device eth0
+```
+
+By convention the virtual NIC is named `<physicalNIC>.<PVID>` (for example, `eth0.10`). Add additional blocks for more VLANs.
+
+3) Configure addressing (static example)
+
+Edit `/etc/dhcpcd.conf` and add IP configuration for each interface you want to set statically. Example:
+
+```
+# example static IP configuration
+
+interface eth0
+	static ip_address=10.0.20.125/24
+
+interface eth0.10
+	static ip_address=10.0.10.125/24
+	static routers=10.0.10.1
+	static domain_name_servers=1.1.1.1
+```
+
+If you use DHCP for a VLAN virtual NIC, you can skip the static block for that interface.
+
+4) Apply changes
+
+Restart networking or reboot:
+
+```bash
+sudo systemctl restart networking
+# or
+sudo reboot
+```
+
+5) Verify
+
+Confirm both addresses are present:
+
+```bash
+hostname -I
+# expected output example: 10.0.20.125 10.0.10.125
+```
+
+If you need to enable the `8021q` kernel module explicitly, add it to `/etc/modules` so it loads at boot:
+
+```bash
+echo 8021q | sudo tee -a /etc/modules
+sudo modprobe 8021q
+```
+
+Notes:
+
+- Replace `eth0`, VLAN IDs and IP addresses with values for your network.
+- If your Pi uses a different init/system (or a GUI network manager), adapt these steps accordingly.
+
+
+## 2. Running docker compose to setup macvlan networks
+
 **Quick Start**
 - Copy the example env and edit values:
 

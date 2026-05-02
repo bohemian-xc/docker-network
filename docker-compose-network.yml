@@ -52,5 +52,3 @@ networks:
       config:
         - subnet: ${VLAN200_SUBNET}
           gateway: ${VLAN200_GATEWAY}
-
-# Use a local bind-mount directory for persistent data: ./vol
