@@ -1,29 +1,31 @@
-**Overview**
-- **Purpose**: Lightweight repository to create and share Docker network objects (bridge and macvlan) for other projects.
-- **Scope**: Provides a reusable `docker-compose-network.yml` and an example `.env` to define macvlan/bridge networks and a data volume.
+# Macvlan network setup for Raspberry Pi (three-step guide)
 
-**Prerequisites**
-- Docker Engine and Docker Compose (Compose V2) installed.
-- For `macvlan` networks: host network interface(s) configured and available (e.g., `eth0`, `eth0.10`).
-- On Linux hosts you may need to create VLAN sub-interfaces (example uses `eth0.10`).
+This guide walks through the updated process for creating VLANs on a Raspberry Pi, running the Docker Compose file to create macvlan networks, and installing a small systemd "shim" service that brings up a host-side macvlan interface so the host can reach the macvlan subnet.
 
-## 1. Setting up VLAN on Raspberry Pi
+IMPORTANT: The repository does not include any VLAN-creation scripts. All commands are manual examples you run on the Pi.
 
-This section follows the steps from the Engineer's Workshop guide to create VLAN virtual NICs and configure IP addressing.
+## Prerequisites
+- A Linux host (Raspberry Pi OS / Debian-like) running Docker and Docker Compose (v2 recommended).
+- Root or sudo access on the Pi to create VLAN interfaces and install systemd units.
+- A managed switch or network capable of the VLANs you plan to use.
 
-Prerequisites:
+Files in this folder:
+- [docker-compose-network.yml](docker-compose-network.yml) — Compose file that defines the networks and an example container.
+- [.env.example](.env.example) — Environment variables for network names, parents, and subnets.
+- [macvlan-shim.service](macvlan-shim.service) — Example systemd unit to create a host macvlan interface at boot.
 
-- A managed switch port configured as a trunk/hybrid with the VLANs you need
-- Physical NIC name on the Pi (e.g., `eth0`)
+---
 
-1) Install the VLAN package
+## Section 1 — Create VLANs on the Raspberry Pi (manual)
+
+1. Install VLAN support (if not present):
 
 ```bash
 sudo apt update
 sudo apt install -y vlan
 ```
 
-2) Create virtual NICs
+2. Create virtual NICs
 
 Create the file `/etc/network/interfaces.d/vlans` and add a stanza for each VLAN. Example for VLAN 10:
 
@@ -35,7 +37,7 @@ iface eth0.10 inet manual
 
 By convention the virtual NIC is named `<physicalNIC>.<PVID>` (for example, `eth0.10`). Add additional blocks for more VLANs.
 
-3) Configure addressing (static example)
+3. Configure addressing (static example)
 
 Edit `/etc/dhcpcd.conf` and add IP configuration for each interface you want to set statically. Example:
 
@@ -53,7 +55,7 @@ interface eth0.10
 
 If you use DHCP for a VLAN virtual NIC, you can skip the static block for that interface.
 
-4) Apply changes
+4. Apply changes
 
 Restart networking or reboot:
 
@@ -63,7 +65,7 @@ sudo systemctl restart networking
 sudo reboot
 ```
 
-5) Verify
+5. Verify
 
 Confirm both addresses are present:
 
@@ -72,97 +74,104 @@ hostname -I
 # expected output example: 10.0.20.125 10.0.10.125
 ```
 
-If you need to enable the `8021q` kernel module explicitly, add it to `/etc/modules` so it loads at boot:
+---
+
+## Section 2 — Run the Docker Compose file to create macvlan networks
+
+1. Copy the example environment file and edit values:
 
 ```bash
-echo 8021q | sudo tee -a /etc/modules
-sudo modprobe 8021q
+cp .env.example .env
+# Edit .env to match your interface names, subnets and gateway values
 ```
 
-Notes:
+Notes for `.env`:
+- `VLAN*_PARENT` should match the Pi's VLAN sub-interface (for example `eth0.10`).
+- `VLAN*_SUBNET` and `VLAN*_GATEWAY` define the macvlan subnet.
+- `VLAN*_IPRANGE` (optional) can limit the range Docker will allocate for dynamic IPs.
 
-- Replace `eth0`, VLAN IDs and IP addresses with values for your network.
-- If your Pi uses a different init/system (or a GUI network manager), adapt these steps accordingly.
-
-
-## 2. Running docker compose to setup macvlan networks
-
-**Quick Start**
-- Copy the example env and edit values:
-
-  - Copy `.env.example` to `.env` and update network and healthcheck settings.
-
-  - Minimal edit example (in `.env`):
-
-    HEALTHCHECK_CMD="nc -z -w 3 192.168.1.1 80 || exit 1"
-    HEALTHCHECK_INT=30s
-    HEALTHCHECK_TOT=10s
-    HEALTHCHECK_RTS=3
-    HEALTHCHECK_STP=30s
-
-    VLAN10_PARENT=eth0.10
-    VLAN10_SUBNET=192.168.10.0/24
-    VLAN10_GATEWAY=192.168.10.1
-    VLAN10_NAME=macvlan_vlan10
-
-    VLAN100_PARENT=eth0.100
-    VLAN100_SUBNET=192.168.100.0/24
-    VLAN100_GATEWAY=192.168.100.1
-    VLAN100_NAME=macvlan_vlan100
-
-    VLAN200_PARENT=eth0.200
-    VLAN200_SUBNET=192.168.200.0/24
-    VLAN200_GATEWAY=192.168.200.1
-    VLAN200_NAME=macvlan_vlan200
-
-- Create VLAN sub-interfaces on the host (example for Linux):
+2. The compose file mounts a local `vol` directory for persistent data. Create it if needed:
 
 ```bash
-sudo ip link add link eth0 name eth0.10 type vlan id 10
-sudo ip link set eth0.10 up
+mkdir -p ./vol
 ```
 
-- Start the compose stack (this will create networks and a container named `network_container`):
+3. Start the stack (this creates the macvlan networks declared in the compose file):
 
 ```bash
-docker compose up -d
+docker compose -f docker-compose-network.yml up -d
 ```
 
-**Notes & Important Gotchas**
-- Network key names in `docker-compose-network.yml`:
-  - `shared_bridge` — a normal bridge network used by the example service.
-  - `vlan10_net`, `vlan100_net`, `vlan200_net` — macvlan networks created using `parent` from `.env`.
-
-- Ensure the `parent` interface exists on the host where Compose runs. If the parent is a VLAN sub-interface (e.g., `eth0.10`) create it beforehand.
-
-- `macvlan` network constraints:
-  - Containers on a macvlan network are isolated from the Docker host by default. To allow host-to-container access, additional macvlan configuration or a bridge on the host is needed.
-  - Using macvlan on Windows or macOS hosts (Docker Desktop) is typically unsupported — run macvlan on Linux hosts (Raspberry Pi, servers, WSL2 with proper network setup).
-
-- Healthcheck: The `HEALTHCHECK_CMD` variable is used as a `CMD-SHELL` argument. Keep the full command in `.env` and include quotes if it contains spaces.
-
-**Files**
-- `docker-compose-network.yml` — compose file that defines example service, bridge and macvlan networks, and a local volume `data_volume`.
-- `.env.example` — example variables to copy to `.env`.
-
-**Advanced / Manual steps**
-- Create macvlan networks manually (if you prefer explicit control):
+4. Verify networks exist and inspect them:
 
 ```bash
-docker network create -d macvlan \
-  --subnet=192.168.10.0/24 --gateway=192.168.10.1 \
-  -o parent=eth0.10 macvlan_vlan10
+docker network ls
+docker network inspect <network-name>
 ```
 
-- Remove the example container and networks:
+Important macvlan behaviour:
+- Containers attached to a macvlan network are by default isolated from the Docker host. They behave like separate hosts on the physical network.
+- To allow host ↔ container communication you can create a host-side macvlan interface (see Section 3) or use other bridging techniques.
+
+---
+
+## Section 3 — Install and configure `macvlan-shim.service` (systemd)
+
+This repository includes an example `macvlan-shim.service` that creates a host-side macvlan interface so the Pi (host) can route to the macvlan subnet. The example file contains placeholder/static addresses — you MUST update these values to match your network.
+
+1. Inspect the provided service file: [macvlan-shim.service](macvlan-shim.service)
+
+2. Edit the unit to use the correct parent interface and addresses. Example entries you will typically adapt:
+
+```ini
+ExecStart=/sbin/ip link add macvlan-shim link eth0 type macvlan mode bridge
+ExecStart=/sbin/ip addr add 192.168.1.62/24 dev macvlan-shim
+ExecStart=/sbin/ip link set macvlan-shim up
+ExecStart=/sbin/ip route add 192.168.1.64/26 dev macvlan-shim
+```
+
+- Change `eth0` to the physical interface on your Pi if different.
+- Change `192.168.1.62/24` and the route `192.168.1.64/26` to static addresses and routes appropriate for your macvlan subnet.
+
+3. Install the service on the Pi (example):
 
 ```bash
-docker compose down
-# or
-docker rm -f network_container && docker network rm macvlan_vlan10 macvlan_vlan100 macvlan_vlan200
+sudo cp macvlan-shim.service /etc/systemd/system/macvlan-shim.service
+sudo systemctl daemon-reload
+sudo systemctl enable --now macvlan-shim.service
+sudo systemctl status macvlan-shim.service
 ```
 
-**Troubleshooting**
-- If Compose fails to create a macvlan network, check the parent interface name and run `ip link` on the host.
-- If `HEALTHCHECK_CMD` fails, test it directly on the host shell to confirm connectivity and command syntax.
+4. Confirm host can reach the macvlan subnet and containers:
+
+```bash
+ip addr show macvlan-shim
+ip route show
+ping <container-ip>
+```
+
+Reminder: update static IP addresses
+- The `macvlan-shim.service` file and any static IPs assigned to containers must be within the IP range/subnet defined for the corresponding macvlan network. Assigning addresses outside the subnet will cause routing failures and reachability issues.
+
+---
+
+## Cleanup
+
+To remove the example container and the networks created by Compose:
+
+```bash
+docker compose -f docker-compose-network.yml down
+```
+
+To remove the host shim:
+
+```bash
+sudo systemctl disable --now macvlan-shim.service
+sudo rm /etc/systemd/system/macvlan-shim.service
+sudo systemctl daemon-reload
+```
+
+## Troubleshooting
+- If the compose step fails to create a macvlan network, confirm the `parent` interface exists on the Pi (`ip link`) and that the VLAN is allowed/trunked on the switch.
+- If the host cannot reach containers, double-check the `macvlan-shim.service` addresses and ensure they fall inside the macvlan subnet.
 
