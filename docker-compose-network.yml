@@ -7,6 +7,9 @@ services:
     command: tail -f /dev/null
     networks:
       - shared_bridge
+      - vlan10_net
+      - vlan100_net
+      - vlan200_net
     volumes:
       - ./vol:/data
     restart: always
