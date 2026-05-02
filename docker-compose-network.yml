@@ -23,35 +23,35 @@ services:
 
 networks:
   shared_bridge:
-    name: shared_bridge
+    name: ${BRIDGE_NAME}
     driver: bridge
   vlan10_net:
     name: ${VLAN10_NAME}
     driver: macvlan
     driver_opts:
       parent: ${VLAN10_PARENT}
-      # ipvlan_mode: l2
     ipam:
       config:
         - subnet: ${VLAN10_SUBNET}
           gateway: ${VLAN10_GATEWAY}
+          ip_range: ${VLAN10_IPRANGE}
   vlan100_net:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
       parent: ${VLAN100_PARENT}
-      # ipvlan_mode: l2
     ipam:
       config:
         - subnet: ${VLAN100_SUBNET}
           gateway: ${VLAN100_GATEWAY}
+          ip_range: ${VLAN100_IPRANGE}
   vlan200_net:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
       parent: ${VLAN200_PARENT}
-      # ipvlan_mode: l2
     ipam:
       config:
         - subnet: ${VLAN200_SUBNET}
           gateway: ${VLAN200_GATEWAY}
+          ip_range: ${VLAN200_IPRANGE}
