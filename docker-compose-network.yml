@@ -1,0 +1,56 @@
+version: '3.8'  # Use an appropriate version of Docker Compose
+
+services:
+  app:
+    image: alpine:latest
+    container_name: network_container
+    command: tail -f /dev/null
+    networks:
+      - shared_bridge
+    volumes:
+      - ./vol:/data
+    restart: always
+    healthcheck:
+      # Check if the gateway (e.g., 192.168.1.1) is reachable
+      test: ["CMD-SHELL", "${HEALTHCHECK_CMD}"]
+      interval: ${HEALTHCHECK_INT}
+      timeout: ${HEALTHCHECK_TOT}
+      retries: ${HEALTHCHECK_RTS}
+      start_period: ${HEALTHCHECK_STP}
+
+networks:
+  shared_bridge:
+    name: shared_bridge
+    driver: bridge
+  vlan10_net:
+    name: ${VLAN10_NAME}
+    driver: macvlan
+    driver_opts:
+      parent: ${VLAN10_PARENT}
+      # ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: ${VLAN10_SUBNET}
+          gateway: ${VLAN10_GATEWAY}
+  vlan100_net:
+    name: ${VLAN100_NAME}
+    driver: macvlan
+    driver_opts:
+      parent: ${VLAN100_PARENT}
+      # ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: ${VLAN100_SUBNET}
+          gateway: ${VLAN100_GATEWAY}
+  vlan200_net:
+    name: ${VLAN200_NAME}
+    driver: macvlan
+    driver_opts:
+      parent: ${VLAN200_PARENT}
+      # ipvlan_mode: l2
+    ipam:
+      config:
+        - subnet: ${VLAN200_SUBNET}
+          gateway: ${VLAN200_GATEWAY}
+
+# Use a local bind-mount directory for persistent data: ./vol
