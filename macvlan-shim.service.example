@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# macvlan-shim.service
+# For adding to systemctl to start macvlan shim service.
+# Create a symlink to /etc/systemd/system/macvlan-shim.service
+# Usage: sudo systemctl enable macvlan-shim.service
+
+[Unit]
+Description=Macvlan Shim Interface
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/sbin/ip link add macvlan-shim link eth0 type macvlan mode bridge
+ExecStart=/sbin/ip addr add 192.168.1.62/24 dev macvlan-shim
+ExecStart=/sbin/ip link set macvlan-shim up
+ExecStart=/sbin/ip route add 192.168.1.64/27 dev macvlan-shim
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

@@ -117,11 +117,13 @@ Important macvlan behaviour:
 
 ## Section 3 — Install and configure `macvlan-shim.service` (systemd)
 
-This repository includes an example `macvlan-shim.service` that creates a host-side macvlan interface so the Pi (host) can route to the macvlan subnet. The example file contains placeholder/static addresses — you MUST update these values to match your network.
+This repository includes an example `macvlan-shim.service.example` that creates a host-side macvlan interface so the Pi (host) can route to the macvlan subnet. The example file contains placeholder/static addresses — you MUST update these values to match your network.
 
-1. Inspect the provided service file: [macvlan-shim.service](macvlan-shim.service)
+1. Make a copy of the example file and remove .example: [macvlan-shim.service.example](macvlan-shim.service.example)
 
-2. Edit the unit to use the correct parent interface and addresses. Example entries you will typically adapt:
+2. Inspect the provided service file: [macvlan-shim.service](macvlan-shim.service)
+
+3. Edit the unit to use the correct parent interface and addresses. Example entries you will typically adapt:
 
 ```ini
 ExecStart=/sbin/ip link add macvlan-shim link eth0 type macvlan mode bridge
@@ -133,16 +135,21 @@ ExecStart=/sbin/ip route add 192.168.1.64/26 dev macvlan-shim
 - Change `eth0` to the physical interface on your Pi if different.
 - Change `192.168.1.62/24` and the route `192.168.1.64/26` to static addresses and routes appropriate for your macvlan subnet.
 
-3. Install the service on the Pi (example):
+4. Symlink the service file to make it easy in future to change at the logical location:
 
 ```bash
-sudo cp macvlan-shim.service /etc/systemd/system/macvlan-shim.service
+sudo ln -s /path/to/source/directory/macvlan-shim.service /etc/systemd/system/macvlan-shim.service
+```
+
+5. Install the service on the Pi (example):
+
+```bash
 sudo systemctl daemon-reload
 sudo systemctl enable --now macvlan-shim.service
 sudo systemctl status macvlan-shim.service
 ```
 
-4. Confirm host can reach the macvlan subnet and containers:
+6. Confirm host can reach the macvlan subnet and containers:
 
 ```bash
 ip addr show macvlan-shim
