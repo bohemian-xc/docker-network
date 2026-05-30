@@ -37,6 +37,15 @@ iface eth0.10 inet manual
 
 By convention the virtual NIC is named `<physicalNIC>.<PVID>` (for example, `eth0.10`). Add additional blocks for more VLANs.
 
+Or if you are using nmcli, then run the following:
+
+```
+sudo nmcli connection add type vlan con-name <conn_name> dev <physical_nic> id <vlan_id>
+```
+
+where `<conn_name>` is the connection name (e.g. eth0.100), `<physica_nic>` is the interface (e.g. eth0) and `<vlan_id>` is the VLAN ID (e.g. 100).
+
+
 3. Configure addressing (static example)
 
 Edit `/etc/dhcpcd.conf` and add IP configuration for each interface you want to set statically. Example:
