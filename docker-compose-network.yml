@@ -7,16 +7,12 @@ services:
     command: tail -f /dev/null
     networks:
       vlan010_net:
-        gw_priority: 500
         priority: 500
       vlan100_net:
-        gw_priority: 490
         priority: 490
       vlan200_net:
-        gw_priority: 480
         priority: 480
       shared_bridge:
-        gw_priority: 1
         priority: 1
     volumes:
       - ./vol:/data
