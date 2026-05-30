@@ -9,9 +9,9 @@ services:
       010_vlan_net:
         priority: 500
       100_vlan_net:
-        priority: 490
+        priority: 400
       200_vlan_net:
-        priority: 480
+        priority: 300
       shared_bridge:
         priority: 1
     volumes:
