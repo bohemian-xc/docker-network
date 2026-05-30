@@ -6,11 +6,11 @@ services:
     container_name: network_container
     command: tail -f /dev/null
     networks:
-      vlan010_net:
+      010_vlan_net:
         priority: 500
-      vlan100_net:
+      100_vlan_net:
         priority: 490
-      vlan200_net:
+      200_vlan_net:
         priority: 480
       shared_bridge:
         priority: 1
@@ -26,7 +26,7 @@ services:
       start_period: ${HEALTHCHECK_STP}
 
 networks:
-  vlan010_net:
+  010_vlan_net:
     name: ${VLAN010_NAME}
     driver: macvlan
     driver_opts:
@@ -37,7 +37,7 @@ networks:
         - subnet: ${VLAN010_SUBNET}
           gateway: ${VLAN010_GATEWAY}
           ip_range: ${VLAN010_IPRANGE}
-  vlan100_net:
+  100_vlan_net:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
@@ -48,7 +48,7 @@ networks:
         - subnet: ${VLAN100_SUBNET}
           gateway: ${VLAN100_GATEWAY}
           ip_range: ${VLAN100_IPRANGE}
-  vlan200_net:
+  200_vlan_net:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
