@@ -9,23 +9,15 @@ services:
       vlan010_net:
         gw_priority: 500
         priority: 500
-        driver_opts:
-          com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth-010}
       vlan100_net:
         gw_priority: 490
         priority: 490
-        driver_opts:
-          com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth-100}
       vlan200_net:
         gw_priority: 480
         priority: 480
-        driver_opts:
-          com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth-200}
       shared_bridge:
         gw_priority: 1
         priority: 1
-        driver_opts:
-          com.docker.network.endpoint.ifname: ${BRIDGE_ETH:-eth-shared}
     volumes:
       - ./vol:/data
     restart: always
@@ -38,13 +30,11 @@ services:
       start_period: ${HEALTHCHECK_STP}
 
 networks:
-  shared_bridge:
-    name: ${BRIDGE_NAME}
-    driver: bridge
-  vlan10_net:
+  vlan010_net:
     name: ${VLAN010_NAME}
     driver: macvlan
     driver_opts:
+      com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth-010}
       parent: ${VLAN010_PARENT}
     ipam:
       config:
@@ -55,6 +45,7 @@ networks:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
+      com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth-100}
       parent: ${VLAN100_PARENT}
     ipam:
       config:
@@ -65,9 +56,15 @@ networks:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
+      com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth-200}
       parent: ${VLAN200_PARENT}
     ipam:
       config:
         - subnet: ${VLAN200_SUBNET}
           gateway: ${VLAN200_GATEWAY}
           ip_range: ${VLAN200_IPRANGE}
+  shared_bridge:
+    name: ${BRIDGE_NAME}
+    driver: bridge
+    driver_opts:
+      com.docker.network.endpoint.ifname: ${BRIDGE_ETH:-eth-shared}
