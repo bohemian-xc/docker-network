@@ -1,9 +1,8 @@
-version: '3.8'  # Use an appropriate version of Docker Compose
-
 services:
   app:
     image: alpine:latest
-    container_name: network_container
+    container_name: ${CONTAINER_NAME:-network_container}
+    hostname: ${HOSTNAME:-dns-server}
     command: tail -f /dev/null
     networks:
       010_vlan_net:
