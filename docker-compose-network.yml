@@ -6,13 +6,12 @@ services:
     command: tail -f /dev/null
     networks:
       010_vlan_net:
-        priority: 500
+        interface_name: ${VLAN010_ETH}
       100_vlan_net:
-        priority: 400
+        interface_name: ${VLAN100_ETH}
       200_vlan_net:
-        priority: 300
-      shared_bridge:
-        priority: 1
+        interface_name: ${VLAN200_ETH}
+      shared_bridge: {}
     volumes:
       - ./vol:/data
     restart: always
