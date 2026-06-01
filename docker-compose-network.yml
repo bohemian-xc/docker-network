@@ -28,8 +28,6 @@ services:
       retries: ${HEALTHCHECK_RTS}
       start_period: ${HEALTHCHECK_STP}
   keepalived:
-    env_file:
-      - ./config/docker-keepalived.env
     build:
       context: .
       dockerfile: Dockerfile.armv7
