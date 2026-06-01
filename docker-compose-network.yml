@@ -29,7 +29,7 @@ networks:
     name: ${VLAN010_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth-010}
+      com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth0}
       parent: ${VLAN010_PARENT}
     ipam:
       config:
@@ -40,7 +40,7 @@ networks:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth-100}
+      com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth2}
       parent: ${VLAN100_PARENT}
     ipam:
       config:
@@ -51,7 +51,7 @@ networks:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth-200}
+      com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth1}
       parent: ${VLAN200_PARENT}
     ipam:
       config:
