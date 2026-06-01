@@ -1,3 +1,7 @@
 macvlan-shim.service
 .env
+*.env
 vol/
+vol/**
+config/
+config/**

@@ -1,0 +1,49 @@
+global_defs {
+    router_id fict_router_A
+    enable_script_security
+    script_user keepalived
+}
+
+# Example health check script: check reachability of a DNS host (fictitious address)
+vrrp_script check_dns_remote {
+    script "nc -z -w1 203.0.113.50 53"
+    interval 3
+    weight 2
+}
+
+vrrp_instance VI_EDGE_A {
+    state MASTER
+    interface eth-example0
+    virtual_router_id 11
+    priority 110
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass ExAmpl3P@ssw0rd!
+    }
+    virtual_ipaddress {
+        203.0.113.200/24
+    }
+    track_script {
+        check_dns_remote
+    }
+}
+
+vrrp_instance VI_CORE_B {
+    state BACKUP
+    interface eth-example1
+    virtual_router_id 101
+    priority 90
+    advert_int 1
+    authentication {
+        auth_type PASS
+        auth_pass B@ckupP@ss2026
+    }
+    virtual_ipaddress {
+        198.51.100.254/24
+        198.51.101.254/24
+    }
+    track_script {
+        check_dns_remote
+    }
+}

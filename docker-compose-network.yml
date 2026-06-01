@@ -1,9 +1,12 @@
 services:
   app:
-    image: alpine:latest
-    container_name: ${CONTAINER_NAME:-network_container}
-    hostname: ${HOSTNAME:-dns-server}
-    command: tail -f /dev/null
+    env_file:
+      - ./config/docker-network.env
+    image: ${IMAGE_NAME}
+    container_name: ${CONTAINER_NAME:-network-container}
+    hostname: ${HOSTNAME:-network-container}
+    command: tail -f /dev/null    
+    restart: always
     networks:
       010_vlan_net:
         interface_name: ${VLAN010_ETH}
@@ -11,10 +14,14 @@ services:
         interface_name: ${VLAN100_ETH}
       200_vlan_net:
         interface_name: ${VLAN200_ETH}
-      shared_bridge: {}
+      shared_bridge:
+        interface_name: ${BRIDGE_ETH}
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - NET_BROADCAST
     volumes:
-      - ./vol:/data
-    restart: always
+      - ${VOLUME_NAME:-./vol/data/}:/data/:rw
     healthcheck:
       # Check if the gateway (e.g., 192.168.1.1) is reachable
       test: ["CMD-SHELL", "${HEALTHCHECK_CMD}"]
@@ -22,13 +29,43 @@ services:
       timeout: ${HEALTHCHECK_TOT}
       retries: ${HEALTHCHECK_RTS}
       start_period: ${HEALTHCHECK_STP}
+  keepalived:
+    env_file:
+      - ./config/docker-keepalived.env
+    build:
+      context: .
+      dockerfile: Dockerfile.armv7
+    image: ${KA_IMAGE}
+    container_name: ${KA_CONTAINER_NAME:-keepalived}
+    hostname: ${KA_HOST_NAME:-keepalived}
+    restart: always
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      KEEPALIVED_OPTS: "${KEEPALIVED_OPTS:--n -l -D -f /usr/local/etc/keepalived/keepalived.conf}"
+      KEEPALIVED_LOG_FILE: "${KEEPALIVED_LOG_FILE:-/var/log/keepalived/keepalived.log}"
+      LOGROTATE_INTERVAL: "${LOGROTATE_INTERVAL:-86400}"
+      LOGROTATE_ROTATE: "${LOGROTATE_ROTATE:-7}"
+      LOGROTATE_COMPRESS: "${LOGROTATE_COMPRESS:-true}"
+    # Define the healthcheck to perform.
+    healthcheck:
+      test:
+        - "CMD-SHELL"
+        - ${HEALTHCHECK_CMD:-nslookup google.com}
+      interval: ${HEALTHCHECK_INT:-30s}
+      timeout: ${HEALTHCHECK_TOT:-10s}
+      retries: ${HEALTHCHECK_RTS:-3}
+      start_period: ${HEALTHCHECK_STP:-30s}
+    # Joins the network namespace
+    network_mode: "service:app"
 
 networks:
   010_vlan_net:
     name: ${VLAN010_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth0}
+      # com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth0}
       parent: ${VLAN010_PARENT}
     ipam:
       config:
@@ -39,7 +76,7 @@ networks:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth2}
+      # com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth2}
       parent: ${VLAN100_PARENT}
     ipam:
       config:
@@ -50,7 +87,7 @@ networks:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
-      com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth1}
+      # com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth1}
       parent: ${VLAN200_PARENT}
     ipam:
       config:
@@ -61,4 +98,4 @@ networks:
     name: ${BRIDGE_NAME}
     driver: bridge
     driver_opts:
-      com.docker.network.endpoint.ifname: ${BRIDGE_ETH:-eth-shared}
+      # com.docker.network.endpoint.ifname: ${BRIDGE_ETH:-eth3}
