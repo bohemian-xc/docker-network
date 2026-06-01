@@ -35,7 +35,7 @@ services:
       dockerfile: Dockerfile.armv7
     image: ${KA_IMAGE}
     container_name: ${KA_CONTAINER_NAME:-keepalived}
-    hostname: ${KA_HOST_NAME:-keepalived}
+    # hostname: ${KA_HOST_NAME:-keepalived}
     restart: always
     depends_on:
       app:
