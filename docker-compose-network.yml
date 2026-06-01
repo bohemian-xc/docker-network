@@ -1,7 +1,5 @@
 services:
   app:
-    env_file:
-      - ./config/docker-network.env
     image: ${IMAGE_NAME}
     container_name: ${CONTAINER_NAME:-network-container}
     hostname: ${HOSTNAME:-network-container}
@@ -43,20 +41,20 @@ services:
       app:
         condition: service_healthy
     environment:
-      KEEPALIVED_OPTS: "${KEEPALIVED_OPTS:--n -l -D -f /usr/local/etc/keepalived/keepalived.conf}"
-      KEEPALIVED_LOG_FILE: "${KEEPALIVED_LOG_FILE:-/var/log/keepalived/keepalived.log}"
-      LOGROTATE_INTERVAL: "${LOGROTATE_INTERVAL:-86400}"
-      LOGROTATE_ROTATE: "${LOGROTATE_ROTATE:-7}"
-      LOGROTATE_COMPRESS: "${LOGROTATE_COMPRESS:-true}"
+      KEEPALIVED_OPTS: "${KA_OPTS:--n -l -D -f /usr/local/etc/keepalived/keepalived.conf}"
+      KEEPALIVED_LOG_FILE: "${KA_LOG_FILE:-/var/log/keepalived/keepalived.log}"
+      LOGROTATE_INTERVAL: "${KA_LOGROTATE_INTERVAL:-86400}"
+      LOGROTATE_ROTATE: "${KA_LOGROTATE_ROTATE:-7}"
+      LOGROTATE_COMPRESS: "${KA_LOGROTATE_COMPRESS:-true}"
     # Define the healthcheck to perform.
     healthcheck:
       test:
         - "CMD-SHELL"
-        - ${HEALTHCHECK_CMD:-nslookup google.com}
-      interval: ${HEALTHCHECK_INT:-30s}
-      timeout: ${HEALTHCHECK_TOT:-10s}
-      retries: ${HEALTHCHECK_RTS:-3}
-      start_period: ${HEALTHCHECK_STP:-30s}
+        - ${KA_HEALTHCHECK_CMD:-nslookup google.com}
+      interval: ${KA_HEALTHCHECK_INT:-30s}
+      timeout: ${KA_HEALTHCHECK_TOT:-10s}
+      retries: ${KA_HEALTHCHECK_RTS:-3}
+      start_period: ${KA_HEALTHCHECK_STP:-30s}
     # Joins the network namespace
     network_mode: "service:app"
     cap_add:
@@ -72,7 +70,6 @@ networks:
     name: ${VLAN010_NAME}
     driver: macvlan
     driver_opts:
-      # com.docker.network.endpoint.ifname: ${VLAN010_ETH:-eth0}
       parent: ${VLAN010_PARENT}
     ipam:
       config:
@@ -83,7 +80,6 @@ networks:
     name: ${VLAN100_NAME}
     driver: macvlan
     driver_opts:
-      # com.docker.network.endpoint.ifname: ${VLAN100_ETH:-eth2}
       parent: ${VLAN100_PARENT}
     ipam:
       config:
@@ -94,7 +90,6 @@ networks:
     name: ${VLAN200_NAME}
     driver: macvlan
     driver_opts:
-      # com.docker.network.endpoint.ifname: ${VLAN200_ETH:-eth1}
       parent: ${VLAN200_PARENT}
     ipam:
       config:
@@ -104,5 +99,4 @@ networks:
   shared_bridge:
     name: ${BRIDGE_NAME}
     driver: bridge
-    driver_opts:
-      # com.docker.network.endpoint.ifname: ${BRIDGE_ETH:-eth3}
+    driver_opts: {}
