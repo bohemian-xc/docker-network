@@ -59,6 +59,13 @@ services:
       start_period: ${HEALTHCHECK_STP:-30s}
     # Joins the network namespace
     network_mode: "service:app"
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+      - NET_BROADCAST
+    volumes:
+      - ${KA_VOL_CFG:-./vol/keepalived/keepalived.conf}:/usr/local/etc/keepalived/keepalived.conf:ro
+      - ${KA_VOL_LOG:-./vol/keepalived/log/}:/var/log/keepalived/:rw
 
 networks:
   010_vlan_net:
